@@ -90,7 +90,46 @@ class HomeViewModel extends ChangeNotifier {
     _isMutating = false;
     notifyListeners();
   }
+
+  Future<TaskSwipeOutcome> handleLeftSwipe(TaskModel task) async {
+    if (isBlocked(task)) {
+      return TaskSwipeOutcome.blocked;
+    }
+
+    _isMutating = true;
+    notifyListeners();
+
+    try {
+      switch (task.status) {
+        case TaskStatus.todo:
+          await _repository.updateTask(
+            task.id,
+            TaskDraftModel.fromTask(
+              task,
+            ).copyWith(status: TaskStatus.inProgress),
+          );
+          await loadTasks();
+          return TaskSwipeOutcome.movedToInProgress;
+        case TaskStatus.inProgress:
+          await _repository.updateTask(
+            task.id,
+            TaskDraftModel.fromTask(task).copyWith(status: TaskStatus.done),
+          );
+          await loadTasks();
+          return TaskSwipeOutcome.movedToDone;
+        case TaskStatus.done:
+          await _repository.deleteTask(task.id);
+          await loadTasks();
+          return TaskSwipeOutcome.deleted;
+      }
+    } finally {
+      _isMutating = false;
+      notifyListeners();
+    }
+  }
 }
+
+enum TaskSwipeOutcome { blocked, movedToInProgress, movedToDone, deleted }
 
 extension on TaskDraftModel {
   TaskDraftModel copyWith({

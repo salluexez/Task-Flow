@@ -6,8 +6,8 @@ import '../../models/task_model.dart';
 import '../../models/task_status.dart';
 import '../../repositories/task_repository.dart';
 import '../../viewmodels/home_view_model.dart';
-import '../widgets/empty_state_view.dart';
 import '../widgets/error_state_view.dart';
+import '../widgets/empty_state_view.dart';
 import '../widgets/loading_state_view.dart';
 import '../widgets/search_bar_field.dart';
 import '../widgets/status_filter_chip.dart';
@@ -140,12 +140,9 @@ class _HomeView extends StatelessWidget {
     return Column(
       children: [
         for (final task in viewModel.visibleTasks) ...[
-          TaskCard(
+          _SwipeableTaskCard(
             task: task,
-            isBlocked: viewModel.isBlocked(task),
-            blockedByTitle: task.blockedByTaskId == null
-                ? null
-                : viewModel.tasksById[task.blockedByTaskId!]?.title,
+            viewModel: viewModel,
             onTap: () => _openDetails(context, viewModel, task),
           ),
           const SizedBox(height: 14),
@@ -215,6 +212,159 @@ class _HomeView extends StatelessWidget {
                 },
         );
       },
+    );
+  }
+}
+
+class _SwipeableTaskCard extends StatelessWidget {
+  const _SwipeableTaskCard({
+    required this.task,
+    required this.viewModel,
+    required this.onTap,
+  });
+
+  final TaskModel task;
+  final HomeViewModel viewModel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isBlocked = viewModel.isBlocked(task);
+    return Dismissible(
+      key: ValueKey('${task.id}-${task.status.name}'),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (_) async {
+        final outcome = await viewModel.handleLeftSwipe(task);
+        if (!context.mounted) {
+          return false;
+        }
+
+        final messenger = ScaffoldMessenger.of(context);
+        switch (outcome) {
+          case TaskSwipeOutcome.blocked:
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Finish the blocking task first before moving this one.',
+                ),
+              ),
+            );
+            return false;
+          case TaskSwipeOutcome.movedToInProgress:
+            messenger.showSnackBar(
+              SnackBar(content: Text('"${task.title}" moved to In Progress.')),
+            );
+            return false;
+          case TaskSwipeOutcome.movedToDone:
+            messenger.showSnackBar(
+              SnackBar(content: Text('"${task.title}" moved to Done.')),
+            );
+            return false;
+          case TaskSwipeOutcome.deleted:
+            messenger.showSnackBar(
+              SnackBar(content: Text('"${task.title}" was deleted.')),
+            );
+            return true;
+        }
+      },
+      background: _SwipeActionBackground(
+        label: _swipeLabel(task.status, isBlocked),
+        icon: _swipeIcon(task.status, isBlocked),
+        color: _swipeColor(task.status, isBlocked),
+      ),
+      child: TaskCard(
+        task: task,
+        isBlocked: isBlocked,
+        blockedByTitle: task.blockedByTaskId == null
+            ? null
+            : viewModel.tasksById[task.blockedByTaskId!]?.title,
+        onTap: onTap,
+      ),
+    );
+  }
+
+  String _swipeLabel(TaskStatus status, bool isBlocked) {
+    if (isBlocked) {
+      return 'BLOCKED';
+    }
+    switch (status) {
+      case TaskStatus.todo:
+        return 'MOVE TO IN PROGRESS';
+      case TaskStatus.inProgress:
+        return 'MOVE TO DONE';
+      case TaskStatus.done:
+        return 'DELETE TASK';
+    }
+  }
+
+  IconData _swipeIcon(TaskStatus status, bool isBlocked) {
+    if (isBlocked) {
+      return Icons.lock_outline_rounded;
+    }
+    switch (status) {
+      case TaskStatus.todo:
+        return Icons.play_arrow_rounded;
+      case TaskStatus.inProgress:
+        return Icons.check_rounded;
+      case TaskStatus.done:
+        return Icons.delete_outline_rounded;
+    }
+  }
+
+  Color _swipeColor(TaskStatus status, bool isBlocked) {
+    if (isBlocked) {
+      return AppTheme.surfaceHigh;
+    }
+    switch (status) {
+      case TaskStatus.todo:
+        return AppTheme.primary;
+      case TaskStatus.inProgress:
+        return const Color(0xFF1E8E66);
+      case TaskStatus.done:
+        return AppTheme.danger;
+    }
+  }
+}
+
+class _SwipeActionBackground extends StatelessWidget {
+  const _SwipeActionBackground({
+    required this.label,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final foregroundColor = color == AppTheme.surfaceHigh
+        ? AppTheme.textSecondary
+        : Colors.white;
+    return Container(
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      alignment: Alignment.centerRight,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Flexible(
+            child: Text(
+              label,
+              textAlign: TextAlign.right,
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: foregroundColor),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Icon(icon, color: foregroundColor),
+        ],
+      ),
     );
   }
 }
