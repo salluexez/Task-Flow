@@ -1,19 +1,126 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:task_flow/main.dart';
+import 'package:task_flow/app/task_flow_app.dart';
+import 'package:task_flow/features/tasks/models/task_draft_model.dart';
+import 'package:task_flow/features/tasks/models/task_model.dart';
+import 'package:task_flow/features/tasks/models/task_status.dart';
+import 'package:task_flow/features/tasks/repositories/task_repository.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    await tester.pumpWidget(const MyApp());
+  testWidgets('home screen switches from loading into empty state', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      TaskFlowApp(repository: _FakeTaskRepository(tasks: const [])),
+    );
 
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('UPCOMING TASKS'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('No tasks yet'), findsOneWidget);
+    expect(find.text('Create your first task'), findsOneWidget);
   });
+
+  testWidgets('search narrows task cards by title', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      TaskFlowApp(
+        repository: _FakeTaskRepository(
+          tasks: [
+            _task(id: '1', title: 'Website Redesign'),
+            _task(id: '2', title: 'Backend Integration'),
+          ],
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, 'Website');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Website Redesign'), findsOneWidget);
+    expect(find.text('Backend Integration'), findsNothing);
+  });
+}
+
+class _FakeTaskRepository implements TaskRepository {
+  _FakeTaskRepository({required List<TaskModel> tasks})
+    : _tasks = List.of(tasks);
+
+  final List<TaskModel> _tasks;
+  TaskDraftModel? _draft;
+
+  @override
+  Future<void> clearDraft() async {
+    _draft = null;
+  }
+
+  @override
+  Future<TaskModel> createTask(TaskDraftModel draft) async {
+    final task = _task(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      title: draft.title,
+      description: draft.description,
+      dueDate: draft.dueDate ?? DateTime(2026, 10, 21),
+      status: draft.status,
+      blockedByTaskId: draft.blockedByTaskId,
+    );
+    _tasks.add(task);
+    return task;
+  }
+
+  @override
+  Future<void> deleteTask(String id) async {
+    _tasks.removeWhere((task) => task.id == id);
+  }
+
+  @override
+  Future<List<TaskModel>> fetchTasks() async => List.unmodifiable(_tasks);
+
+  @override
+  TaskDraftModel? loadDraft() => _draft;
+
+  @override
+  Future<void> saveDraft(TaskDraftModel draft) async {
+    _draft = draft;
+  }
+
+  @override
+  Future<TaskModel> updateTask(String id, TaskDraftModel draft) async {
+    final index = _tasks.indexWhere((task) => task.id == id);
+    final updated = _tasks[index].copyWith(
+      title: draft.title,
+      description: draft.description,
+      dueDate: draft.dueDate,
+      status: draft.status,
+      blockedByTaskId: draft.blockedByTaskId,
+    );
+    _tasks[index] = updated;
+    return updated;
+  }
+}
+
+TaskModel _task({
+  required String id,
+  required String title,
+  String description = 'Sample description',
+  DateTime? dueDate,
+  TaskStatus status = TaskStatus.todo,
+  String? blockedByTaskId,
+}) {
+  final now = DateTime(2026, 10, 20);
+  return TaskModel(
+    id: id,
+    title: title,
+    description: description,
+    dueDate: dueDate ?? DateTime(2026, 10, 21),
+    status: status,
+    blockedByTaskId: blockedByTaskId,
+    createdAt: now,
+    updatedAt: now,
+  );
 }
