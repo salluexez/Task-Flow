@@ -1,23 +1,38 @@
 # Task Flow
 
-Task Flow is a Flutter task management app built for the Flodo take-home assignment using **Track B (Mobile Specialist)**. It uses a local-first stack, Stitch-inspired editorial UI, and an MVVM architecture with persistent task storage, dependency-aware task states, and draft recovery.
+Task Flow is a Flutter task management app built for the Flodo take-home assignment under **Track B: Mobile Specialist**. The app is local-first, uses an **MVVM** architecture, and focuses on polished UI, clear task state transitions, and reliable on-device persistence.
 
-## What Is Included
+## Assignment Summary
 
-- Track B implementation with no backend
-- MVVM structure with models, data services, repository, view models, and views
-- SQLite persistence for tasks
-- `shared_preferences` draft persistence for unsaved create-task input
-- Search by title and filter by status
-- Blocked task styling and dependency handling
-- Simulated 2-second create/update delay with disabled save actions
-- Stitch-inspired screens for home, empty, loading, error, detail, and create/edit flows
+- Track: **Track B**
+- Stretch Goal: **None**
+- Architecture: **MVVM**
+- Persistence: **SQLite + shared_preferences**
+- Design Direction: **Stitch-inspired editorial UI**
 
-## Project Structure
+## Implemented Features
+
+- Create, read, update, and delete tasks
+- Search tasks by title
+- Filter tasks by status: `All`, `To-Do`, `In Progress`, `Done`
+- Optional `Blocked By` dependency between tasks
+- Blocked task styling until the prerequisite task is marked `Done`
+- Draft recovery for unsaved create-task input
+- Simulated 2-second delay on create and update with visible loading state
+- Save button protection against duplicate taps
+- Left-swipe workflow on task cards:
+  - `To-Do` -> `In Progress`
+  - `In Progress` -> `Done`
+  - `Done` -> delete
+
+## Architecture
+
+The app follows a lightweight MVVM structure:
 
 ```text
 lib/
   app/
+    theme/
   features/tasks/
     data/
     models/
@@ -27,57 +42,58 @@ lib/
     views/
 ```
 
-## Setup
+### Layer Overview
 
-1. Install Flutter 3.35+ and confirm `flutter doctor` is clean.
-2. Open the project folder:
+- `models`: task entities, status enum, and draft model
+- `data`: SQLite and draft-storage services
+- `repositories`: task persistence and simulated save/update delay
+- `viewmodels`: screen state, filtering, validation, and actions
+- `views`: screens and reusable UI widgets
 
-   ```bash
-   cd task_flow
-   ```
+## Persistence
 
-3. Fetch packages:
+- Task records are stored in a local SQLite database
+- Unsaved create-form draft data is stored using `shared_preferences`
+- Data persists across app restarts
 
-   ```bash
-   flutter pub get
-   ```
+## How To Run
 
-4. Run the app:
+```bash
+flutter pub get
+flutter run
+```
 
-   ```bash
-   flutter run
-   ```
+## Verification
 
-5. Run verification:
+```bash
+flutter analyze
+flutter test
+```
 
-   ```bash
-   flutter analyze
-   flutter test
-   ```
+## Notes On Scope
 
-## Assignment Choices
+- `Home` is the fully functional assignment screen
+- `Calendar` and `Profile` are lightweight placeholders kept to match the UI direction without adding unnecessary scope
+- The task detail modal was adapted from the Stitch mockup and simplified to assignment-relevant data only
 
-- Track: **Track B**
-- Stretch Goal: **None**
-- Architecture: **MVVM**
-- Persistence: **SQLite + shared_preferences**
+## Technical Decisions
 
-## Technical Notes
-
-- Tasks are stored locally in SQLite and persist across app restarts.
-- Draft text entered in the create-task flow is restored if the screen is reopened before save.
-- The optional `blocked by` relationship is validated to avoid self-references and dependency cycles when editing.
-- Create and update actions intentionally wait for 2 seconds so the loading state and double-submit protection are visible.
+- **SQLite for tasks**: chosen for durable structured local storage and restart persistence
+- **shared_preferences for drafts**: simple and reliable for restoring unsaved form input
+- **MVVM**: keeps UI, state handling, and persistence responsibilities separated and easier to reason about
+- **Blocked task validation**: prevents invalid dependency behavior and keeps the state model consistent
 
 ## AI Usage Report
 
 AI tools were used to accelerate planning, architecture setup, and implementation scaffolding.
 
-Helpful AI usage:
-- breaking the assignment into a concrete MVVM architecture
-- mapping the Stitch UI references into Flutter widgets
-- generating initial repository, view model, and test scaffolding
+Helpful uses:
 
-AI correction example:
-- an early pass produced a dependency-cycle utility with an invalid nullable assignment
-- the logic was corrected after `flutter analyze` flagged the issue, and the cycle checks were verified with tests
+- converting the assignment requirements into an MVVM implementation plan
+- translating Stitch UI direction into Flutter widgets and screens
+- scaffolding repository, view model, and test structure
+
+One correction made after AI-assisted generation:
+
+- an early database startup path and dependency-state iteration needed correction during verification
+- the issues were fixed after local testing and `flutter analyze`, then revalidated with tests
