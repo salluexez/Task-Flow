@@ -75,7 +75,7 @@ class _HomeView extends StatelessWidget {
                       _Header(date: DateTime.now()),
                       const SizedBox(height: 24),
                       SearchBarField(
-                        initialValue: viewModel.searchQuery,
+                        initialValue: viewModel.searchInput,
                         onChanged: viewModel.setSearchQuery,
                       ),
                       const SizedBox(height: 18),

@@ -12,16 +12,41 @@ void main() {
       _task(id: '2', title: 'Backend Integration', status: TaskStatus.todo),
     ]);
 
-    final viewModel = HomeViewModel(repository);
+    final viewModel = HomeViewModel(
+      repository,
+      searchDebounceDuration: const Duration(milliseconds: 10),
+    );
     await Future<void>.delayed(Duration.zero);
     await viewModel.loadTasks();
 
     viewModel.setSearchQuery('website');
+    await Future<void>.delayed(const Duration(milliseconds: 15));
     expect(viewModel.visibleTasks.map((task) => task.id), ['1']);
 
     viewModel.setSearchQuery('');
+    await Future<void>.delayed(const Duration(milliseconds: 15));
     viewModel.setStatusFilter(TaskStatus.todo);
     expect(viewModel.visibleTasks.map((task) => task.id), ['2']);
+  });
+
+  test('home view model debounces search updates', () async {
+    final repository = _MemoryRepository([
+      _task(id: '1', title: 'Website Redesign'),
+      _task(id: '2', title: 'Backend Integration'),
+    ]);
+
+    final viewModel = HomeViewModel(
+      repository,
+      searchDebounceDuration: const Duration(milliseconds: 40),
+    );
+    await Future<void>.delayed(Duration.zero);
+    await viewModel.loadTasks();
+
+    viewModel.setSearchQuery('Website');
+    expect(viewModel.visibleTasks.map((task) => task.id), ['1', '2']);
+
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    expect(viewModel.visibleTasks.map((task) => task.id), ['1']);
   });
 
   test('left swipe moves todo to in progress and then to done', () async {

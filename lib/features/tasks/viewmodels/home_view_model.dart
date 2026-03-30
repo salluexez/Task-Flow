@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/task_draft_model.dart';
@@ -7,21 +9,28 @@ import '../repositories/task_repository.dart';
 import '../utils/task_dependency_utils.dart';
 
 class HomeViewModel extends ChangeNotifier {
-  HomeViewModel(this._repository) {
+  HomeViewModel(
+    this._repository, {
+    Duration searchDebounceDuration = const Duration(milliseconds: 300),
+  }) : _searchDebounceDuration = searchDebounceDuration {
     loadTasks();
   }
 
   final TaskRepository _repository;
+  final Duration _searchDebounceDuration;
 
   bool _isLoading = true;
   String? _errorMessage;
+  String _searchInput = '';
   String _searchQuery = '';
   TaskStatus? _statusFilter;
   List<TaskModel> _tasks = const [];
   bool _isMutating = false;
+  Timer? _searchDebounceTimer;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  String get searchInput => _searchInput;
   String get searchQuery => _searchQuery;
   TaskStatus? get statusFilter => _statusFilter;
   bool get isMutating => _isMutating;
@@ -61,7 +70,12 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   void setSearchQuery(String value) {
-    _searchQuery = value;
+    _searchInput = value;
+    _searchDebounceTimer?.cancel();
+    _searchDebounceTimer = Timer(_searchDebounceDuration, () {
+      _searchQuery = value;
+      notifyListeners();
+    });
     notifyListeners();
   }
 
@@ -146,6 +160,12 @@ class HomeViewModel extends ChangeNotifier {
       _errorMessage = 'Something went wrong while loading your tasks.';
     }
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _searchDebounceTimer?.cancel();
+    super.dispose();
   }
 }
 

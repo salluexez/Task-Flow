@@ -40,6 +40,12 @@ void main() {
 
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).first, 'Website');
+    await tester.pump();
+
+    expect(find.text('Website Redesign'), findsOneWidget);
+    expect(find.text('Backend Integration'), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpAndSettle();
 
     expect(find.text('Website Redesign'), findsOneWidget);
