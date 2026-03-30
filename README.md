@@ -1,12 +1,12 @@
 # Task Flow
 
-Task Flow is a Flutter task management app built for the Flodo take-home assignment under **Track B: Mobile Specialist**. The app is local-first, uses an **MVVM** architecture, and focuses on polished UI, clear task state transitions, and reliable on-device persistence.
+Task Flow is a Flutter task management app built for the Flodo take-home assignment under **Mobile Specialist**. The app is local-first, and focuses on polished UI, clear task state transitions, and reliable on-device persistence.
 
-## Assignment Summary
+## project Summary
 
-- Track: **Track B**
+- Track: **Mobile Specialist**
 - Stretch Goal: **Debounced search**
-- Architecture: **MVVM**
+- Architecture: **Clean Architecture**
 - Persistence: **SQLite + shared_preferences**
 - Design Direction: **Stitch-inspired editorial UI**
 
@@ -28,7 +28,7 @@ Task Flow is a Flutter task management app built for the Flodo take-home assignm
 
 ## Architecture
 
-The app follows a lightweight MVVM structure:
+The app follows a lightweight Clean Architecture structure:
 
 ```text
 lib/
