@@ -16,7 +16,11 @@ class TaskFormViewModel extends ChangeNotifier {
   }) : _repository = repository,
        _allTasks = allTasks {
     if (existingTask != null) {
-      _applyDraft(TaskDraftModel.fromTask(existingTask!));
+      final task = existingTask;
+      _applyDraft(
+        _repository.loadDraft(draftId: task!.id) ??
+            TaskDraftModel.fromTask(task),
+      );
       _isInitializing = false;
     } else {
       unawaited(initialize());
@@ -37,6 +41,8 @@ class TaskFormViewModel extends ChangeNotifier {
   String? _errorMessage;
   Map<String, String> _fieldErrors = const {};
 
+  String? get _draftId => existingTask?.id;
+
   bool get isEditMode => existingTask != null;
   bool get isSaving => _isSaving;
   bool get isInitializing => _isInitializing;
@@ -49,11 +55,7 @@ class TaskFormViewModel extends ChangeNotifier {
   Map<String, String> get fieldErrors => _fieldErrors;
 
   Future<void> initialize() async {
-    if (isEditMode) {
-      return;
-    }
-
-    final draft = _repository.loadDraft();
+    final draft = _repository.loadDraft(draftId: _draftId);
     if (draft != null) {
       _applyDraft(draft);
     }
@@ -108,11 +110,16 @@ class TaskFormViewModel extends ChangeNotifier {
   void updateStatus(TaskStatus value) {
     _status = value;
     _clearFieldError('status');
+    _clearFieldError('blockedState');
+    _persistDraft();
     notifyListeners();
   }
 
   void updateBlockedByTask(String? value) {
     _blockedByTaskId = value;
+    _clearFieldError('blockedBy');
+    _clearFieldError('blockedState');
+    _persistDraft();
     notifyListeners();
   }
 
@@ -141,9 +148,7 @@ class TaskFormViewModel extends ChangeNotifier {
       final task = isEditMode
           ? await _repository.updateTask(existingTask!.id, draft)
           : await _repository.createTask(draft);
-      if (!isEditMode) {
-        await _repository.clearDraft();
-      }
+      await _repository.clearDraft(draftId: _draftId);
       return task;
     } catch (_) {
       _errorMessage = 'We could not save your task. Please try again.';
@@ -155,10 +160,7 @@ class TaskFormViewModel extends ChangeNotifier {
   }
 
   Future<void> discardDraft() async {
-    if (isEditMode) {
-      return;
-    }
-    await _repository.clearDraft();
+    await _repository.clearDraft(draftId: _draftId);
   }
 
   void _applyDraft(TaskDraftModel draft) {
@@ -170,7 +172,7 @@ class TaskFormViewModel extends ChangeNotifier {
   }
 
   void _persistDraft() {
-    if (isEditMode || _isInitializing) {
+    if (_isInitializing) {
       return;
     }
 
@@ -183,6 +185,7 @@ class TaskFormViewModel extends ChangeNotifier {
           status: _status,
           blockedByTaskId: _blockedByTaskId,
         ),
+        draftId: _draftId,
       ),
     );
   }
@@ -199,8 +202,8 @@ class TaskFormViewModel extends ChangeNotifier {
     if (_dueDate == null) {
       errors['dueDate'] = 'Due date is required.';
     }
+    final tasksById = {for (final task in _allTasks) task.id: task};
     if (_blockedByTaskId != null && existingTask != null) {
-      final tasksById = {for (final task in _allTasks) task.id: task};
       if (TaskDependencyUtils.wouldCreateCycle(
         sourceTaskId: existingTask!.id,
         proposedBlockedByTaskId: _blockedByTaskId,
@@ -208,6 +211,12 @@ class TaskFormViewModel extends ChangeNotifier {
       )) {
         errors['blockedBy'] = 'This dependency would create a cycle.';
       }
+    }
+    final blocker = _blockedByTaskId == null ? null : tasksById[_blockedByTaskId];
+    final isBlocked = blocker != null && blocker.status != TaskStatus.done;
+    if (isBlocked && _status != TaskStatus.todo) {
+      errors['blockedState'] =
+          'Blocked tasks must stay To-Do until the prerequisite is done.';
     }
 
     _fieldErrors = errors;

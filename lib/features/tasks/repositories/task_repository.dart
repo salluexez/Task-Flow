@@ -6,7 +6,7 @@ abstract class TaskRepository {
   Future<TaskModel> createTask(TaskDraftModel draft);
   Future<TaskModel> updateTask(String id, TaskDraftModel draft);
   Future<void> deleteTask(String id);
-  Future<void> saveDraft(TaskDraftModel draft);
-  TaskDraftModel? loadDraft();
-  Future<void> clearDraft();
+  Future<void> saveDraft(TaskDraftModel draft, {String? draftId});
+  TaskDraftModel? loadDraft({String? draftId});
+  Future<void> clearDraft({String? draftId});
 }

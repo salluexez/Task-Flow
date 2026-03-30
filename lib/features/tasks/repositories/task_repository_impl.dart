@@ -105,18 +105,18 @@ class TaskRepositoryImpl implements TaskRepository {
   }
 
   @override
-  Future<void> saveDraft(TaskDraftModel draft) {
-    return _draftStorageService.save(draft);
+  Future<void> saveDraft(TaskDraftModel draft, {String? draftId}) {
+    return _draftStorageService.save(draft, draftId: draftId);
   }
 
   @override
-  TaskDraftModel? loadDraft() {
-    return _draftStorageService.load();
+  TaskDraftModel? loadDraft({String? draftId}) {
+    return _draftStorageService.load(draftId: draftId);
   }
 
   @override
-  Future<void> clearDraft() {
-    return _draftStorageService.clear();
+  Future<void> clearDraft({String? draftId}) {
+    return _draftStorageService.clear(draftId: draftId);
   }
 
   DateTime _normalizedDate(DateTime date) {

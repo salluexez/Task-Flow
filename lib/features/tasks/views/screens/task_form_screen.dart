@@ -199,6 +199,15 @@ class _TaskFormViewState extends State<_TaskFormView> {
                         context,
                       ).textTheme.bodyMedium?.copyWith(fontSize: 12),
                     ),
+                    if (viewModel.fieldErrors['blockedState'] != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        viewModel.fieldErrors['blockedState']!,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.danger,
+                        ),
+                      ),
+                    ],
                     if (viewModel.errorMessage != null) ...[
                       const SizedBox(height: 18),
                       Text(
