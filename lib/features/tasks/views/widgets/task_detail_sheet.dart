@@ -120,6 +120,8 @@ class TaskDetailSheet extends StatelessWidget {
                     child: Text(
                       task.status == TaskStatus.done
                           ? 'Already Done'
+                          : onMarkDone == null
+                          ? 'Blocked'
                           : 'Mark as Done',
                       textAlign: TextAlign.center,
                     ),

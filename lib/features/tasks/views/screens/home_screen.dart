@@ -204,7 +204,8 @@ class _HomeView extends StatelessWidget {
             Navigator.of(sheetContext).pop();
             await homeViewModel.deleteTask(task.id);
           },
-          onMarkDone: task.status == TaskStatus.done
+          onMarkDone:
+              task.status == TaskStatus.done || homeViewModel.isBlocked(task)
               ? null
               : () async {
                   Navigator.of(sheetContext).pop();

@@ -59,6 +59,22 @@ void main() {
     expect(outcome, TaskSwipeOutcome.deleted);
     expect(viewModel.allTasks, isEmpty);
   });
+
+  test('markTaskDone refuses blocked tasks', () async {
+    final repository = _MemoryRepository([
+      _task(id: '1', title: 'Blocked task', blockedByTaskId: '2'),
+      _task(id: '2', title: 'Blocker', status: TaskStatus.inProgress),
+    ]);
+
+    final viewModel = HomeViewModel(repository);
+    await Future<void>.delayed(Duration.zero);
+    await viewModel.loadTasks();
+
+    final result = await viewModel.markTaskDone(viewModel.allTasks.first);
+
+    expect(result, isFalse);
+    expect(viewModel.allTasks.first.status, TaskStatus.todo);
+  });
 }
 
 class _MemoryRepository implements TaskRepository {
@@ -67,7 +83,7 @@ class _MemoryRepository implements TaskRepository {
   final List<TaskModel> _tasks;
 
   @override
-  Future<void> clearDraft() async {}
+  Future<void> clearDraft({String? draftId}) async {}
 
   @override
   Future<TaskModel> createTask(TaskDraftModel draft) async =>
@@ -82,10 +98,10 @@ class _MemoryRepository implements TaskRepository {
   Future<List<TaskModel>> fetchTasks() async => List.unmodifiable(_tasks);
 
   @override
-  TaskDraftModel? loadDraft() => null;
+  TaskDraftModel? loadDraft({String? draftId}) => null;
 
   @override
-  Future<void> saveDraft(TaskDraftModel draft) async {}
+  Future<void> saveDraft(TaskDraftModel draft, {String? draftId}) async {}
 
   @override
   Future<TaskModel> updateTask(String id, TaskDraftModel draft) async {
@@ -106,6 +122,7 @@ TaskModel _task({
   required String id,
   required String title,
   TaskStatus status = TaskStatus.todo,
+  String? blockedByTaskId,
 }) {
   final now = DateTime(2026, 10, 20);
   return TaskModel(
@@ -114,7 +131,7 @@ TaskModel _task({
     description: '',
     dueDate: now,
     status: status,
-    blockedByTaskId: null,
+    blockedByTaskId: blockedByTaskId,
     createdAt: now,
     updatedAt: now,
   );

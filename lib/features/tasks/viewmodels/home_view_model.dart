@@ -79,7 +79,11 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> markTaskDone(TaskModel task) async {
+  Future<bool> markTaskDone(TaskModel task) async {
+    if (isBlocked(task)) {
+      return false;
+    }
+
     _isMutating = true;
     notifyListeners();
     await _repository.updateTask(
@@ -89,6 +93,7 @@ class HomeViewModel extends ChangeNotifier {
     await loadTasks();
     _isMutating = false;
     notifyListeners();
+    return true;
   }
 
   Future<TaskSwipeOutcome> handleLeftSwipe(TaskModel task) async {

@@ -45,6 +45,34 @@ void main() {
     expect(find.text('Website Redesign'), findsOneWidget);
     expect(find.text('Backend Integration'), findsNothing);
   });
+
+  testWidgets('blocked detail sheet disables mark done action', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      TaskFlowApp(
+        repository: _FakeTaskRepository(
+          tasks: [
+            _task(id: '1', title: 'Blocked task', blockedByTaskId: '2'),
+            _task(
+              id: '2',
+              title: 'Blocker',
+              status: TaskStatus.inProgress,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Blocked task'));
+    await tester.pumpAndSettle();
+
+    final button = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, 'Blocked'),
+    );
+    expect(button.onPressed, isNull);
+  });
 }
 
 class _FakeTaskRepository implements TaskRepository {
@@ -55,7 +83,7 @@ class _FakeTaskRepository implements TaskRepository {
   TaskDraftModel? _draft;
 
   @override
-  Future<void> clearDraft() async {
+  Future<void> clearDraft({String? draftId}) async {
     _draft = null;
   }
 
@@ -82,10 +110,10 @@ class _FakeTaskRepository implements TaskRepository {
   Future<List<TaskModel>> fetchTasks() async => List.unmodifiable(_tasks);
 
   @override
-  TaskDraftModel? loadDraft() => _draft;
+  TaskDraftModel? loadDraft({String? draftId}) => _draft;
 
   @override
-  Future<void> saveDraft(TaskDraftModel draft) async {
+  Future<void> saveDraft(TaskDraftModel draft, {String? draftId}) async {
     _draft = draft;
   }
 
