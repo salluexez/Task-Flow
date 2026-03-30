@@ -34,78 +34,88 @@ class _HomeView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<HomeViewModel>(
       builder: (context, viewModel, _) {
-        return Scaffold(
-          backgroundColor: AppTheme.surface,
-          floatingActionButton: DecoratedBox(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [AppTheme.primary, AppTheme.primaryContainer],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primary.withValues(alpha: 0.18),
-                  blurRadius: 24,
-                  offset: const Offset(0, 12),
-                ),
-              ],
-            ),
-            child: FloatingActionButton(
-              onPressed: () => _openForm(context, viewModel),
-              elevation: 0,
-              backgroundColor: Colors.transparent,
-              foregroundColor: Colors.white,
-              child: const Icon(Icons.add_rounded),
-            ),
-          ),
-          body: SafeArea(
-            child: RefreshIndicator(
-              color: AppTheme.primary,
-              onRefresh: viewModel.loadTasks,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 120),
-                children: [
-                  _Header(date: DateTime.now()),
-                  const SizedBox(height: 24),
-                  SearchBarField(
-                    initialValue: viewModel.searchQuery,
-                    onChanged: viewModel.setSearchQuery,
+        return Stack(
+          children: [
+            Scaffold(
+              backgroundColor: AppTheme.surface,
+              floatingActionButton: DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [AppTheme.primary, AppTheme.primaryContainer],
                   ),
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    height: 42,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: [
-                        StatusFilterChip(
-                          label: 'All',
-                          selected: viewModel.statusFilter == null,
-                          onTap: () => viewModel.setStatusFilter(null),
-                        ),
-                        const SizedBox(width: 10),
-                        for (final status in TaskStatus.values) ...[
-                          StatusFilterChip(
-                            label: status.label,
-                            selected: viewModel.statusFilter == status,
-                            onTap: () => viewModel.setStatusFilter(status),
-                          ),
-                          const SizedBox(width: 10),
-                        ],
-                      ],
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primary.withValues(alpha: 0.18),
+                      blurRadius: 24,
+                      offset: const Offset(0, 12),
                     ),
+                  ],
+                ),
+                child: FloatingActionButton(
+                  onPressed: viewModel.isMutating
+                      ? null
+                      : () => _openForm(context, viewModel),
+                  elevation: 0,
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  child: const Icon(Icons.add_rounded),
+                ),
+              ),
+              body: SafeArea(
+                child: RefreshIndicator(
+                  color: AppTheme.primary,
+                  onRefresh: viewModel.isMutating
+                      ? () async {}
+                      : viewModel.loadTasks,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 120),
+                    children: [
+                      _Header(date: DateTime.now()),
+                      const SizedBox(height: 24),
+                      SearchBarField(
+                        initialValue: viewModel.searchQuery,
+                        onChanged: viewModel.setSearchQuery,
+                      ),
+                      const SizedBox(height: 18),
+                      SizedBox(
+                        height: 42,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            StatusFilterChip(
+                              label: 'All',
+                              selected: viewModel.statusFilter == null,
+                              onTap: () => viewModel.setStatusFilter(null),
+                            ),
+                            const SizedBox(width: 10),
+                            for (final status in TaskStatus.values) ...[
+                              StatusFilterChip(
+                                label: status.label,
+                                selected: viewModel.statusFilter == status,
+                                onTap: () => viewModel.setStatusFilter(status),
+                              ),
+                              const SizedBox(width: 10),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      Text(
+                        'UPCOMING TASKS',
+                        style: Theme.of(context).textTheme.labelSmall,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildContent(context, viewModel),
+                    ],
                   ),
-                  const SizedBox(height: 28),
-                  Text(
-                    'UPCOMING TASKS',
-                    style: Theme.of(context).textTheme.labelSmall,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildContent(context, viewModel),
-                ],
+                ),
               ),
             ),
-          ),
+            if (viewModel.isMutating)
+              const Positioned.fill(child: _MutationOverlay()),
+          ],
         );
       },
     );
@@ -213,6 +223,46 @@ class _HomeView extends StatelessWidget {
                 },
         );
       },
+    );
+  }
+}
+
+class _MutationOverlay extends StatelessWidget {
+  const _MutationOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return AbsorbPointer(
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.08),
+        alignment: Alignment.center,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceLowest,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2.2),
+              ),
+              SizedBox(width: 12),
+              Text('Updating tasks...'),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

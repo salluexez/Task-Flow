@@ -71,12 +71,10 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> deleteTask(String id) async {
-    _isMutating = true;
-    notifyListeners();
-    await _repository.deleteTask(id);
-    await loadTasks();
-    _isMutating = false;
-    notifyListeners();
+    await _runMutation(() async {
+      await _repository.deleteTask(id);
+      await _refreshTasksAfterMutation();
+    });
   }
 
   Future<bool> markTaskDone(TaskModel task) async {
@@ -84,15 +82,13 @@ class HomeViewModel extends ChangeNotifier {
       return false;
     }
 
-    _isMutating = true;
-    notifyListeners();
-    await _repository.updateTask(
-      task.id,
-      TaskDraftModel.fromTask(task).copyWith(status: TaskStatus.done),
-    );
-    await loadTasks();
-    _isMutating = false;
-    notifyListeners();
+    await _runMutation(() async {
+      await _repository.updateTask(
+        task.id,
+        TaskDraftModel.fromTask(task).copyWith(status: TaskStatus.done),
+      );
+      await _refreshTasksAfterMutation();
+    });
     return true;
   }
 
@@ -101,36 +97,55 @@ class HomeViewModel extends ChangeNotifier {
       return TaskSwipeOutcome.blocked;
     }
 
-    _isMutating = true;
-    notifyListeners();
-
-    try {
-      switch (task.status) {
-        case TaskStatus.todo:
+    switch (task.status) {
+      case TaskStatus.todo:
+        await _runMutation(() async {
           await _repository.updateTask(
             task.id,
             TaskDraftModel.fromTask(
               task,
             ).copyWith(status: TaskStatus.inProgress),
           );
-          await loadTasks();
-          return TaskSwipeOutcome.movedToInProgress;
-        case TaskStatus.inProgress:
+          await _refreshTasksAfterMutation();
+        });
+        return TaskSwipeOutcome.movedToInProgress;
+      case TaskStatus.inProgress:
+        await _runMutation(() async {
           await _repository.updateTask(
             task.id,
             TaskDraftModel.fromTask(task).copyWith(status: TaskStatus.done),
           );
-          await loadTasks();
-          return TaskSwipeOutcome.movedToDone;
-        case TaskStatus.done:
+          await _refreshTasksAfterMutation();
+        });
+        return TaskSwipeOutcome.movedToDone;
+      case TaskStatus.done:
+        await _runMutation(() async {
           await _repository.deleteTask(task.id);
-          await loadTasks();
-          return TaskSwipeOutcome.deleted;
-      }
+          await _refreshTasksAfterMutation();
+        });
+        return TaskSwipeOutcome.deleted;
+    }
+  }
+
+  Future<void> _runMutation(Future<void> Function() action) async {
+    _isMutating = true;
+    notifyListeners();
+    try {
+      await action();
     } finally {
       _isMutating = false;
       notifyListeners();
     }
+  }
+
+  Future<void> _refreshTasksAfterMutation() async {
+    try {
+      _tasks = await _repository.fetchTasks();
+      _errorMessage = null;
+    } catch (_) {
+      _errorMessage = 'Something went wrong while loading your tasks.';
+    }
+    notifyListeners();
   }
 }
 
