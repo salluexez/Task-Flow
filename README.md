@@ -5,7 +5,7 @@ Task Flow is a Flutter task management app built for the Flodo take-home assignm
 ## Assignment Summary
 
 - Track: **Track B**
-- Stretch Goal: **None**
+- Stretch Goal: **Debounced search**
 - Architecture: **MVVM**
 - Persistence: **SQLite + shared_preferences**
 - Design Direction: **Stitch-inspired editorial UI**
@@ -13,13 +13,14 @@ Task Flow is a Flutter task management app built for the Flodo take-home assignm
 ## Implemented Features
 
 - Create, read, update, and delete tasks
-- Search tasks by title
+- Search tasks by title with debounced filtering
 - Filter tasks by status: `All`, `To-Do`, `In Progress`, `Done`
 - Optional `Blocked By` dependency between tasks
-- Blocked task styling until the prerequisite task is marked `Done`
-- Draft recovery for unsaved create-task input
+- Blocked task styling and interaction guards until the prerequisite task is marked `Done`
+- Draft recovery for unsaved create-task and edit-task input
 - Simulated 2-second delay on create and update with visible loading state
 - Save button protection against duplicate taps
+- Mutation overlay during delayed task updates from the task list
 - Left-swipe workflow on task cards:
   - `To-Do` -> `In Progress`
   - `In Progress` -> `Done`
@@ -53,7 +54,7 @@ lib/
 ## Persistence
 
 - Task records are stored in a local SQLite database
-- Unsaved create-form draft data is stored using `shared_preferences`
+- Unsaved create-form and edit-form draft data are stored using `shared_preferences`
 - Data persists across app restarts
 
 ## How To Run
@@ -79,9 +80,10 @@ flutter test
 ## Technical Decisions
 
 - **SQLite for tasks**: chosen for durable structured local storage and restart persistence
-- **shared_preferences for drafts**: simple and reliable for restoring unsaved form input
+- **shared_preferences for drafts**: simple and reliable for restoring unsaved form input in both create and edit flows
 - **MVVM**: keeps UI, state handling, and persistence responsibilities separated and easier to reason about
-- **Blocked task validation**: prevents invalid dependency behavior and keeps the state model consistent
+- **Blocked task validation**: prevents invalid dependency behavior and blocks status progression until prerequisites are complete
+- **Debounced search**: reduces unnecessary filter churn while the user is still typing
 
 ## AI Usage Report
 
@@ -96,4 +98,5 @@ Helpful uses:
 One correction made after AI-assisted generation:
 
 - an early database startup path and dependency-state iteration needed correction during verification
+- blocked-task completion paths, draft restoration coverage, and async list-mutation feedback were tightened during verification
 - the issues were fixed after local testing and `flutter analyze`, then revalidated with tests
